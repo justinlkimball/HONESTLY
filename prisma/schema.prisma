@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [vector]
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  password  String? // For mock auth; null when using Auth0
+  authId    String?  @unique // Auth0 user ID when integrated
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  profile         Profile?
+  givenMatches    Match[]  @relation("UserMatches")
+  receivedMatches Match[]  @relation("MatchedUserMatches")
+
+  @@map("users")
+}
+
+model Profile {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Core profile data
+  bio         String   @db.Text // The authentic self-description
+  age         Int
+  gender      String
+  location    String // City/coordinates for distance calculations
+  latitude    Float?
+  longitude   Float?
+
+  // Preferences
+  preferences Json     // {ageMin, ageMax, maxDistance, genderPreference, dealbreakers: []}
+
+  // AI Analysis
+  analysis    Json?    // AI-extracted compatibility signals
+  embedding   Unsupported("vector(1536)")? // pgvector embedding for semantic matching
+
+  // Metadata
+  isComplete  Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  photos      Photo[]
+
+  @@map("profiles")
+}
+
+model Photo {
+  id        String   @id @default(cuid())
+  profileId String
+  profile   Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("photos")
+}
+
+model Match {
+  id              String   @id @default(cuid())
+
+  userId          String
+  user            User     @relation("UserMatches", fields: [userId], references: [id], onDelete: Cascade)
+
+  matchedUserId   String
+  matchedUser     User     @relation("MatchedUserMatches", fields: [matchedUserId], references: [id], onDelete: Cascade)
+
+  // Compatibility data
+  score           Float    // 0-100 compatibility score
+  explanation     String   @db.Text // AI-generated explanation of compatibility
+
+  // Match status
+  status          MatchStatus @default(PENDING)
+
+  // Interaction tracking
+  userLiked       Boolean  @default(false)
+  matchedUserLiked Boolean @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, matchedUserId])
+  @@map("matches")
+}
+
+enum MatchStatus {
+  PENDING   // Match generated, not yet viewed
+  VIEWED    // User has seen the match
+  LIKED     // User liked the match
+  MUTUAL    // Both users liked each other
+  PASSED    // User passed on the match
+}
