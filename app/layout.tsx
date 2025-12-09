@@ -1,12 +1,20 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
+import { Playfair_Display, Inter } from 'next/font/google'
 import './globals.css'
 
-const inter = Inter({ subsets: ['latin'] })
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-playfair',
+})
+
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+})
 
 export const metadata: Metadata = {
-  title: 'Honestly - Write to Your AI Friend',
-  description: 'A safe space to write letters and gain deeper insights',
+  title: 'Honestly',
+  description: 'Write Letter → Right Person',
 }
 
 export default function RootLayout({
@@ -16,7 +24,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className={`${playfair.variable} ${inter.variable} font-sans`}>{children}</body>
     </html>
   )
 }
